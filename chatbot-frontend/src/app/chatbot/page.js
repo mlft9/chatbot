@@ -1,11 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
 
 export default function Chatbot() {
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
+
+    // Envoie un message automatique 1 seconde après le chargement de la page ou le reset
+    const sendWelcomeMessage = async () => {
+        setTimeout(() => {
+            setChatHistory((prev) => [
+                ...prev,
+                {
+                    sender: 'bot',
+                    text: '👋 Bonjour ! Je suis là pour répondre à vos questions. N’hésitez pas à demander !',
+                    isWelcome: true, // Indicateur pour détecter le message de bienvenue
+                },
+            ]);
+        }, 1000);
+    };
+
+    // Fonction pour vider le chat
+    const clearChat = () => {
+        setChatHistory([]);
+        sendWelcomeMessage();
+    };
+
+    // Envoie un message au démarrage
+    useEffect(() => {
+        sendWelcomeMessage();
+    }, []);
 
     const sendMessage = async () => {
         if (!message.trim()) return;
@@ -16,13 +41,13 @@ export default function Chatbot() {
             const res = await api.post('/chat', { message });
             setChatHistory((prev) => [
                 ...prev,
-                { sender: 'bot', text: res.data.response }
+                { sender: 'bot', text: res.data.response },
             ]);
         } catch (err) {
             console.error(err);
             setChatHistory((prev) => [
                 ...prev,
-                { sender: 'bot', text: 'Error: Could not fetch response' }
+                { sender: 'bot', text: "Je n'ai pas pu répondre à votre question." },
             ]);
         } finally {
             setMessage('');
@@ -45,9 +70,11 @@ export default function Chatbot() {
                         key={index}
                         style={{
                             ...styles.message,
-                            ...(chat.sender === 'user'
+                            ...(chat.isWelcome
+                                ? styles.welcomeMessage // Applique le style spécifique pour le message de bienvenue
+                                : chat.sender === 'user'
                                 ? styles.userMessage
-                                : styles.botMessage)
+                                : styles.botMessage),
                         }}
                     >
                         {chat.text}
@@ -55,16 +82,20 @@ export default function Chatbot() {
                 ))}
             </div>
             <div style={styles.inputContainer}>
+                {/* Bouton pour vider la discussion */}
+                <button onClick={clearChat} style={styles.clearButton}>
+                    🗑️
+                </button>
                 <input
                     type="text"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type your message..."
+                    placeholder="Écrivez votre message..."
                     style={styles.input}
                 />
                 <button onClick={sendMessage} style={styles.sendButton}>
-                    Send
+                    Envoyer
                 </button>
             </div>
         </div>
@@ -79,15 +110,15 @@ const styles = {
         alignItems: 'center',
         fontFamily: 'Arial, sans-serif',
         height: '100vh',
-        backgroundColor: '#121212', // Fond sombre
-        color: '#E0E0E0', // Texte clair
+        backgroundColor: '#121212',
+        color: '#E0E0E0',
         margin: 0,
         padding: '0 20px',
     },
     header: {
         fontSize: '24px',
         marginBottom: '20px',
-        color: '#BB86FC', // Accent violet
+        color: '#BB86FC',
     },
     chatBox: {
         width: '100%',
@@ -97,7 +128,7 @@ const styles = {
         border: '1px solid #333',
         borderRadius: '8px',
         padding: '10px',
-        backgroundColor: '#1E1E1E', // Fond légèrement plus clair
+        backgroundColor: '#1E1E1E',
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
@@ -111,26 +142,49 @@ const styles = {
     },
     userMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: '#1E88E5', // Bleu pour les messages utilisateurs
+        backgroundColor: '#1E88E5',
         color: '#FFFFFF',
     },
     botMessage: {
         alignSelf: 'flex-start',
-        backgroundColor: '#424242', // Gris pour les messages du bot
+        backgroundColor: '#424242',
         color: '#E0E0E0',
+    },
+    welcomeMessage: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#BB86FC', // Couleur d'accent violet
+        color: '#121212',
+        padding: '15px',
+        borderRadius: '12px',
+        border: '1px solid #BB86FC',
+        maxWidth: '80%',
+        wordWrap: 'break-word',
+        fontSize: '18px',
+        fontStyle: 'italic',
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)', // Effet d'ombre
     },
     inputContainer: {
         display: 'flex',
+        alignItems: 'center',
         marginTop: '20px',
         width: '100%',
         maxWidth: '600px',
     },
+    clearButton: {
+        padding: '10px',
+        border: 'none',
+        backgroundColor: '#1E1E1E',
+        color: '#E0E0E0',
+        cursor: 'pointer',
+        borderRadius: '8px 0 0 8px',
+        fontSize: '18px',
+    },
     input: {
         flex: 1,
         padding: '10px',
-        borderRadius: '8px 0 0 8px',
+        borderRadius: '0',
         border: '1px solid #333',
-        backgroundColor: '#1E1E1E', // Fond sombre de l'input
+        backgroundColor: '#1E1E1E',
         color: '#E0E0E0',
         fontSize: '16px',
     },
@@ -138,8 +192,8 @@ const styles = {
         padding: '10px 20px',
         borderRadius: '0 8px 8px 0',
         border: 'none',
-        backgroundColor: '#BB86FC', // Violet accentué
-        color: '#121212', 
+        backgroundColor: '#BB86FC',
+        color: '#121212',
         cursor: 'pointer',
         fontSize: '16px',
     },
