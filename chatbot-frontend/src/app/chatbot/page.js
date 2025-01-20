@@ -139,7 +139,7 @@ const styles = {
         borderRadius: '0 8px 8px 0',
         border: 'none',
         backgroundColor: '#BB86FC', // Violet accentué
-        color: '#121212', // Texte sombre
+        color: '#121212', 
         cursor: 'pointer',
         fontSize: '16px',
     },
