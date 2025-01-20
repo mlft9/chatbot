@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mariadb = require('mariadb');
+const Fuse = require('fuse.js');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -35,25 +36,38 @@ app.post('/chat', async (req, res) => {
     try {
         const conn = await pool.getConnection();
 
-        // Recherche de la question dans la base de données
-        const rows = await conn.query(
-            'SELECT answer FROM questions WHERE question = ? LIMIT 1',
-            [message]
-        );
+        // Récupérer toutes les questions et réponses de la base
+        const rows = await conn.query('SELECT question, answer FROM questions');
 
         conn.release();
 
-        if (rows.length > 0) {
-            res.json({ response: rows[0].answer });
+        // Configuration de Fuse.js pour la recherche approximative
+        const fuse = new Fuse(rows, {
+            keys: ['question'], // Recherche uniquement sur la colonne "question"
+            threshold: 0.6, // Niveau de tolérance (plus bas = plus strict)
+        });
+
+        // Recherche la meilleure correspondance
+        const result = fuse.search(message);
+
+        if (result.length > 0) {
+            // Retourne la réponse correspondant à la meilleure correspondance
+            return res.json({ response: result[0].item.answer });
         } else {
-            res.json({ response: "Je n'ai pas la réponse à cette question." });
+            // Recherche partielle pour suggérer des questions similaires
+            const suggestions = fuse.search(message, { limit: 3 }).map((r) => r.item.question);
+            return res.json({
+                response: "Je n'ai pas la réponse à cette question.",
+                suggestions: suggestions.length
+                    ? `Voulez-vous dire : ${suggestions.join(', ')} ?`
+                    : null,
+            });
         }
     } catch (err) {
         console.error(err);
         res.status(500).json({ response: 'Erreur interne du serveur.' });
     }
 });
-
 
 // Lancement du serveur
 app.listen(PORT, () => {

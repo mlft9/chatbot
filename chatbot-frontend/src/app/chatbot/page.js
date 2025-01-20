@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 
 export default function Chatbot() {
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
+    const chatBoxRef = useRef(null); // Référence pour la boîte de discussion
+
+    // Fonction pour scroller automatiquement vers le bas
+    const scrollToBottom = () => {
+        if (chatBoxRef.current) {
+            chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+        }
+    };
 
     // Envoie un message automatique 1 seconde après le chargement de la page ou le reset
     const sendWelcomeMessage = async () => {
@@ -15,9 +23,10 @@ export default function Chatbot() {
                 {
                     sender: 'bot',
                     text: '👋 Bonjour ! Je suis là pour répondre à vos questions. N’hésitez pas à demander !',
-                    isWelcome: true, // Indicateur pour détecter le message de bienvenue
+                    isWelcome: true,
                 },
             ]);
+            scrollToBottom(); // Scrolle après avoir ajouté le message
         }, 1000);
     };
 
@@ -31,6 +40,11 @@ export default function Chatbot() {
     useEffect(() => {
         sendWelcomeMessage();
     }, []);
+
+    // Scrolle automatiquement vers le bas à chaque mise à jour de l'historique
+    useEffect(() => {
+        scrollToBottom();
+    }, [chatHistory]);
 
     const sendMessage = async () => {
         if (!message.trim()) return;
@@ -64,14 +78,15 @@ export default function Chatbot() {
     return (
         <div style={styles.container}>
             <h1 style={styles.header}>Chatbot</h1>
-            <div style={styles.chatBox}>
+            {/* Ajout de la référence à la boîte de discussion */}
+            <div style={styles.chatBox} ref={chatBoxRef}>
                 {chatHistory.map((chat, index) => (
                     <div
                         key={index}
                         style={{
                             ...styles.message,
                             ...(chat.isWelcome
-                                ? styles.welcomeMessage // Applique le style spécifique pour le message de bienvenue
+                                ? styles.welcomeMessage
                                 : chat.sender === 'user'
                                 ? styles.userMessage
                                 : styles.botMessage),
@@ -82,7 +97,6 @@ export default function Chatbot() {
                 ))}
             </div>
             <div style={styles.inputContainer}>
-                {/* Bouton pour vider la discussion */}
                 <button onClick={clearChat} style={styles.clearButton}>
                     🗑️
                 </button>
