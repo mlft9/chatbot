@@ -6,7 +6,9 @@ import api from '../services/api';
 export default function Chatbot() {
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
-    const chatBoxRef = useRef(null); // Référence pour la boîte de discussion
+    const [isLoading, setIsLoading] = useState(false);
+    const chatBoxRef = useRef(null);
+    const hasSentWelcomeMessage = useRef(false); // Utilisé pour éviter les doublons
 
     // Fonction pour scroller automatiquement vers le bas
     const scrollToBottom = () => {
@@ -16,7 +18,9 @@ export default function Chatbot() {
     };
 
     // Envoie un message automatique 1 seconde après le chargement de la page ou le reset
-    const sendWelcomeMessage = async () => {
+    const sendWelcomeMessage = () => {
+        if (hasSentWelcomeMessage.current) return; // Évite d'ajouter plusieurs messages de bienvenue
+        hasSentWelcomeMessage.current = true; // Marque comme envoyé
         setTimeout(() => {
             setChatHistory((prev) => [
                 ...prev,
@@ -33,6 +37,7 @@ export default function Chatbot() {
     // Fonction pour vider le chat
     const clearChat = () => {
         setChatHistory([]);
+        hasSentWelcomeMessage.current = false; // Réinitialise l'état pour le message de bienvenue
         sendWelcomeMessage();
     };
 
@@ -50,21 +55,23 @@ export default function Chatbot() {
         if (!message.trim()) return;
 
         setChatHistory((prev) => [...prev, { sender: 'user', text: message }]);
+        setIsLoading(true);
 
         try {
             const res = await api.post('/chat', { message });
             setChatHistory((prev) => [
                 ...prev,
-                { sender: 'bot', text: res.data.response },
+                { sender: 'bot', text: res.data.response || "Je n'ai pas compris votre question." },
             ]);
         } catch (err) {
             console.error(err);
             setChatHistory((prev) => [
                 ...prev,
-                { sender: 'bot', text: "Je n'ai pas pu répondre à votre question." },
+                { sender: 'bot', text: "Une erreur est survenue. Veuillez réessayer plus tard." },
             ]);
         } finally {
             setMessage('');
+            setIsLoading(false);
         }
     };
 
@@ -78,7 +85,6 @@ export default function Chatbot() {
     return (
         <div style={styles.container}>
             <h1 style={styles.header}>Chatbot</h1>
-            {/* Ajout de la référence à la boîte de discussion */}
             <div style={styles.chatBox} ref={chatBoxRef}>
                 {chatHistory.map((chat, index) => (
                     <div
@@ -95,9 +101,10 @@ export default function Chatbot() {
                         {chat.text}
                     </div>
                 ))}
+                {isLoading && <div style={styles.loader}>Le bot réfléchit...</div>}
             </div>
             <div style={styles.inputContainer}>
-                <button onClick={clearChat} style={styles.clearButton}>
+                <button onClick={clearChat} style={styles.clearButton} aria-label="Vider le chat">
                     🗑️
                 </button>
                 <input
@@ -108,13 +115,14 @@ export default function Chatbot() {
                     placeholder="Écrivez votre message..."
                     style={styles.input}
                 />
-                <button onClick={sendMessage} style={styles.sendButton}>
+                <button onClick={sendMessage} style={styles.sendButton} aria-label="Envoyer le message">
                     Envoyer
                 </button>
             </div>
         </div>
     );
 }
+
 
 const styles = {
     container: {
@@ -153,6 +161,7 @@ const styles = {
         maxWidth: '70%',
         wordWrap: 'break-word',
         fontSize: '16px',
+        animation: 'fadeIn 0.3s ease-in-out',
     },
     userMessage: {
         alignSelf: 'flex-end',
@@ -166,7 +175,7 @@ const styles = {
     },
     welcomeMessage: {
         alignSelf: 'flex-start',
-        backgroundColor: '#BB86FC', // Couleur d'accent violet
+        backgroundColor: '#BB86FC',
         color: '#121212',
         padding: '15px',
         borderRadius: '12px',
@@ -175,7 +184,13 @@ const styles = {
         wordWrap: 'break-word',
         fontSize: '18px',
         fontStyle: 'italic',
-        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)', // Effet d'ombre
+        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.3)',
+    },
+    loader: {
+        alignSelf: 'flex-start',
+        color: '#BB86FC',
+        fontStyle: 'italic',
+        fontSize: '14px',
     },
     inputContainer: {
         display: 'flex',
@@ -210,5 +225,15 @@ const styles = {
         color: '#121212',
         cursor: 'pointer',
         fontSize: '16px',
+    },
+    '@keyframes fadeIn': {
+        from: {
+            opacity: 0,
+            transform: 'translateY(10px)',
+        },
+        to: {
+            opacity: 1,
+            transform: 'translateY(0)',
+        },
     },
 };

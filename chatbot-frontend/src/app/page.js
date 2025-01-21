@@ -1,59 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
+  const router = useRouter();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ question }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json(); // Analyse JSON
-      setAnswer(data.answer); // Utilise la réponse
-    } catch (error) {
-      console.error('Error:', error);
-      setAnswer('Une erreur est survenue lors de la communication avec l’API.');
-    }
+  const goToChatbot = () => {
+    router.push('/chatbot'); // Redirige vers la page du chatbot
   };
 
-
   return (
-    <main style={{ padding: '20px', textAlign: 'center' }}>
-      <h1>Chatbot pour Spectateurs</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Posez votre question"
-          className="w-80 p-2 border rounded mb-4 text-black"
-        />
-        <br />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-        >
-          Envoyer
-        </button>
-      </form>
-      {answer && (
-        <p style={{ marginTop: '20px', fontWeight: 'bold' }}>
-          Réponse : {answer}
-        </p>
-      )}
+    <main style={styles.container}>
+      <h1 style={styles.header}>Bienvenue sur le Chatbot pour Spectateurs</h1>
+      <p style={styles.description}>
+        Découvrez notre assistant intelligent conçu pour enrichir votre expérience dans les stades. Cliquez ci-dessous pour interagir avec le chatbot et poser vos questions !
+      </p>
+      <button style={styles.button} onClick={goToChatbot}>
+        Accéder au Chatbot
+      </button>
     </main>
   );
 }
+
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    height: '100vh',
+    padding: '20px',
+    fontFamily: 'Arial, sans-serif',
+    backgroundColor: '#121212',
+    color: '#E0E0E0',
+  },
+  header: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    marginBottom: '20px',
+    color: '#BB86FC',
+  },
+  description: {
+    fontSize: '18px',
+    marginBottom: '40px',
+    maxWidth: '600px',
+    lineHeight: '1.6',
+  },
+  button: {
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    color: '#121212',
+    backgroundColor: '#BB86FC',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
+  },
+};
