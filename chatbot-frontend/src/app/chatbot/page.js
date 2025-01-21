@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '../services/api';
 
 export default function Chatbot() {
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
-    const [suggestions, setSuggestions] = useState([]); // Stockage des suggestions
+    const [suggestions, setSuggestions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const chatBoxRef = useRef(null);
-    const hasSentWelcomeMessage = useRef(false); // Utilisé pour éviter les doublons
+    const hasSentWelcomeMessage = useRef(false);
+    const router = useRouter(); // Pour rediriger vers le panel d'administration
 
     // Fonction pour scroller automatiquement vers le bas
     const scrollToBottom = () => {
@@ -20,8 +22,8 @@ export default function Chatbot() {
 
     // Envoie un message automatique 1 seconde après le chargement de la page ou le reset
     const sendWelcomeMessage = () => {
-        if (hasSentWelcomeMessage.current) return; // Évite d'ajouter plusieurs messages de bienvenue
-        hasSentWelcomeMessage.current = true; // Marque comme envoyé
+        if (hasSentWelcomeMessage.current) return;
+        hasSentWelcomeMessage.current = true;
         setTimeout(() => {
             setChatHistory((prev) => [
                 ...prev,
@@ -31,41 +33,36 @@ export default function Chatbot() {
                     isWelcome: true,
                 },
             ]);
-            scrollToBottom(); // Scrolle après avoir ajouté le message
+            scrollToBottom();
         }, 1000);
     };
 
-    // Fonction pour vider le chat
     const clearChat = () => {
         setChatHistory([]);
-        hasSentWelcomeMessage.current = false; // Réinitialise l'état pour le message de bienvenue
+        hasSentWelcomeMessage.current = false;
         sendWelcomeMessage();
     };
 
-    // Envoie un message au démarrage
     useEffect(() => {
         sendWelcomeMessage();
-        fetchSuggestions(); // Charge les suggestions dès le démarrage
+        fetchSuggestions();
     }, []);
 
-    // Scrolle automatiquement vers le bas à chaque mise à jour de l'historique
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory]);
 
-    // Fonction pour récupérer les suggestions depuis l'API
     const fetchSuggestions = async () => {
         try {
             const res = await api.get('/suggestions');
-            setSuggestions(res.data.data.map((item) => item.question)); // Extrait les questions
+            setSuggestions(res.data.data.map((item) => item.question));
         } catch (error) {
             console.error('Erreur lors de la récupération des suggestions :', error);
         }
     };
 
-    // Fonction pour envoyer une suggestion comme message
     const handleSuggestionClick = async (suggestion) => {
-        setChatHistory((prev) => [...prev, { sender: 'user', text: suggestion }]); // Ajoute au chat
+        setChatHistory((prev) => [...prev, { sender: 'user', text: suggestion }]);
         setIsLoading(true);
 
         try {
@@ -118,6 +115,14 @@ export default function Chatbot() {
 
     return (
         <div style={styles.container}>
+            {/* Bouton pour le Panel Administration */}
+            <button
+                onClick={() => router.push('/admin')}
+                style={styles.adminButton}
+            >
+                Panel Admin
+            </button>
+
             <h1 style={styles.header}>Chatbot</h1>
             <div style={styles.chatBox} ref={chatBoxRef}>
                 {chatHistory.map((chat, index) => (
@@ -180,6 +185,24 @@ const styles = {
         color: '#E0E0E0',
         margin: 0,
         padding: '0 20px',
+        position: 'relative',
+    },
+    adminButton: {
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        padding: '10px 20px',
+        backgroundColor: '#BB86FC',
+        color: '#121212',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        borderRadius: '8px',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'background-color 0.3s ease',
+    },
+    adminButtonHover: {
+        backgroundColor: '#8A66D6',
     },
     header: {
         fontSize: '24px',
