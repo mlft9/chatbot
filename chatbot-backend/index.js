@@ -5,6 +5,7 @@ const mariadb = require('mariadb');
 const Fuse = require('fuse.js');
 
 const app = express();
+const router = express.Router(); // Définition correcte du router
 const PORT = process.env.PORT || 4001;
 
 // Middleware
@@ -13,7 +14,7 @@ app.use(express.json());
 
 // Pool de connexion à MariaDB
 const pool = mariadb.createPool({
-    host: process.env.DB_HOST, // Exemple : 'localhost'
+    host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
@@ -21,40 +22,32 @@ const pool = mariadb.createPool({
 });
 
 // Route pour répondre aux questions
-app.post('/chat', async (req, res) => {
+router.post('/chat', async (req, res) => {
     const { message } = req.body;
 
     if (!message) {
         return res.status(400).json({ response: 'Veuillez fournir une question.' });
     }
 
-    // Vérifie si c'est le message de bienvenue
     if (message === 'Bonjour ! Comment puis-je vous aider aujourd’hui ?') {
         return res.json({ response: 'Bonjour ! Je suis là pour répondre à vos questions.' });
     }
 
     try {
         const conn = await pool.getConnection();
-
-        // Récupérer toutes les questions et réponses de la base
         const rows = await conn.query('SELECT question, answer FROM questions');
-
         conn.release();
 
-        // Configuration de Fuse.js pour la recherche approximative
         const fuse = new Fuse(rows, {
-            keys: ['question'], // Recherche uniquement sur la colonne "question"
-            threshold: 0.6, // Niveau de tolérance (plus bas = plus strict)
+            keys: ['question'],
+            threshold: 0.6,
         });
 
-        // Recherche la meilleure correspondance
         const result = fuse.search(message);
 
         if (result.length > 0) {
-            // Retourne la réponse correspondant à la meilleure correspondance
             return res.json({ response: result[0].item.answer });
         } else {
-            // Recherche partielle pour suggérer des questions similaires
             const suggestions = fuse.search(message, { limit: 3 }).map((r) => r.item.question);
             return res.json({
                 response: "Je n'ai pas la réponse à cette question.",
@@ -69,7 +62,8 @@ app.post('/chat', async (req, res) => {
     }
 });
 
-app.get('/questions', async (req, res) => {
+// Route pour récupérer toutes les questions
+router.get('/questions', async (req, res) => {
     try {
         const conn = await pool.getConnection();
         const rows = await conn.query('SELECT * FROM questions');
@@ -81,7 +75,8 @@ app.get('/questions', async (req, res) => {
     }
 });
 
-app.post('/questions', async (req, res) => {
+// Ajouter une nouvelle question
+router.post('/questions', async (req, res) => {
     const { question, answer } = req.body;
     if (!question || !answer) {
         return res.status(400).json({ error: 'Veuillez fournir une question et une réponse.' });
@@ -98,7 +93,8 @@ app.post('/questions', async (req, res) => {
     }
 });
 
-app.put('/questions/:id', async (req, res) => {
+// Mettre à jour une question
+router.put('/questions/:id', async (req, res) => {
     const { id } = req.params;
     const { question, answer } = req.body;
     if (!question || !answer) {
@@ -116,7 +112,8 @@ app.put('/questions/:id', async (req, res) => {
     }
 });
 
-app.delete('/questions/:id', async (req, res) => {
+// Supprimer une question
+router.delete('/questions/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -130,7 +127,23 @@ app.delete('/questions/:id', async (req, res) => {
     }
 });
 
+// Route pour récupérer les suggestions
+router.get('/suggestions', async (req, res) => {
+    try {
+        const conn = await pool.getConnection();
+        const suggestions = await conn.query('SELECT question FROM questions WHERE is_suggestion = TRUE');
+        conn.release();
+        res.status(200).json({ success: true, data: suggestions });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Erreur lors de la récupération des suggestions.' });
+    }
+});
+
+// Attache le router à l'application principale
+app.use(router);
+
 // Lancement du serveur
 app.listen(PORT, () => {
-    console.log(`Serveur démarré sur https://api-chatbot.maxlft.tech:${PORT}`);
+    console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });

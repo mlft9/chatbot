@@ -6,6 +6,7 @@ import api from '../services/api';
 export default function Chatbot() {
     const [message, setMessage] = useState('');
     const [chatHistory, setChatHistory] = useState([]);
+    const [suggestions, setSuggestions] = useState([]); // Stockage des suggestions
     const [isLoading, setIsLoading] = useState(false);
     const chatBoxRef = useRef(null);
     const hasSentWelcomeMessage = useRef(false); // Utilisé pour éviter les doublons
@@ -44,12 +45,45 @@ export default function Chatbot() {
     // Envoie un message au démarrage
     useEffect(() => {
         sendWelcomeMessage();
+        fetchSuggestions(); // Charge les suggestions dès le démarrage
     }, []);
 
     // Scrolle automatiquement vers le bas à chaque mise à jour de l'historique
     useEffect(() => {
         scrollToBottom();
     }, [chatHistory]);
+
+    // Fonction pour récupérer les suggestions depuis l'API
+    const fetchSuggestions = async () => {
+        try {
+            const res = await api.get('/suggestions');
+            setSuggestions(res.data.data.map((item) => item.question)); // Extrait les questions
+        } catch (error) {
+            console.error('Erreur lors de la récupération des suggestions :', error);
+        }
+    };
+
+    // Fonction pour envoyer une suggestion comme message
+    const handleSuggestionClick = async (suggestion) => {
+        setChatHistory((prev) => [...prev, { sender: 'user', text: suggestion }]); // Ajoute au chat
+        setIsLoading(true);
+
+        try {
+            const res = await api.post('/chat', { message: suggestion });
+            setChatHistory((prev) => [
+                ...prev,
+                { sender: 'bot', text: res.data.response || "Je n'ai pas compris votre question." },
+            ]);
+        } catch (err) {
+            console.error(err);
+            setChatHistory((prev) => [
+                ...prev,
+                { sender: 'bot', text: "Une erreur est survenue. Veuillez réessayer plus tard." },
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const sendMessage = async () => {
         if (!message.trim()) return;
@@ -103,6 +137,17 @@ export default function Chatbot() {
                 ))}
                 {isLoading && <div style={styles.loader}>Le bot réfléchit...</div>}
             </div>
+            <div style={styles.suggestionsContainer}>
+                {suggestions.map((suggestion, index) => (
+                    <button
+                        key={index}
+                        style={styles.suggestionButton}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                        {suggestion}
+                    </button>
+                ))}
+            </div>
             <div style={styles.inputContainer}>
                 <button onClick={clearChat} style={styles.clearButton} aria-label="Vider le chat">
                     🗑️
@@ -122,7 +167,6 @@ export default function Chatbot() {
         </div>
     );
 }
-
 
 const styles = {
     container: {
@@ -192,6 +236,25 @@ const styles = {
         fontStyle: 'italic',
         fontSize: '14px',
     },
+    suggestionsContainer: {
+        display: 'flex',
+        gap: '10px',
+        flexWrap: 'wrap',
+        margin: '10px 0',
+    },
+    suggestionButton: {
+        padding: '10px 15px',
+        backgroundColor: '#424242',
+        color: '#E0E0E0',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        transition: 'background-color 0.3s ease',
+    },
+    suggestionButtonHover: {
+        backgroundColor: '#BB86FC',
+    },
     inputContainer: {
         display: 'flex',
         alignItems: 'center',
@@ -207,6 +270,10 @@ const styles = {
         cursor: 'pointer',
         borderRadius: '8px 0 0 8px',
         fontSize: '18px',
+        transition: 'background-color 0.3s ease',
+    },
+    clearButtonHover: {
+        backgroundColor: '#BB86FC',
     },
     input: {
         flex: 1,
