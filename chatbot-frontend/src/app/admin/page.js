@@ -8,7 +8,7 @@ export default function Admin() {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState({ question: '', answer: '' });
     const [editing, setEditing] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // L'état de chargement est à true au début
     const [error, setError] = useState('');
     const router = useRouter();
 
@@ -24,6 +24,7 @@ export default function Admin() {
         const verifyToken = async () => {
             try {
                 await api.post('/verify-token', { token });
+                setLoading(false); // Si tout va bien, on change l'état de chargement
             } catch {
                 localStorage.removeItem('token');
                 router.push('/login'); // Redirige si le token est invalide
@@ -35,8 +36,9 @@ export default function Admin() {
 
     // Récupérer les questions
     useEffect(() => {
+        if (loading) return; // Si la page est en cours de chargement, ne pas exécuter fetchQuestions
         fetchQuestions();
-    }, []);
+    }, [loading]);
 
     const fetchQuestions = async () => {
         setLoading(true);
@@ -114,14 +116,15 @@ export default function Admin() {
         router.push('/login'); // Redirige vers la page de connexion
     };
 
-    return (
+    return loading ? (
+        <div style={styles.loader}>Vérification de l'authentification...</div>
+    ) : (
         <div style={styles.container}>
             <button onClick={handleLogout} style={styles.logoutButton}>
-            Déconnexion
-        </button>
+                Déconnexion
+            </button>
             <h1 style={styles.header}>Administration des Questions</h1>
 
-            {loading && <div style={styles.loader}>Chargement des données...</div>}
             {error && <div style={styles.error}>{error}</div>}
 
             <div style={styles.form}>
@@ -341,9 +344,5 @@ const styles = {
         borderRadius: '4px',
         cursor: 'pointer',
         fontSize: '14px',
-        transition: 'background-color 0.3s ease',
-    },
-    logoutButtonHover: {
-        backgroundColor: '#d32f2f',
     },
 };
