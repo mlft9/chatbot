@@ -69,6 +69,67 @@ app.post('/chat', async (req, res) => {
     }
 });
 
+app.get('/questions', async (req, res) => {
+    try {
+        const conn = await pool.getConnection();
+        const rows = await conn.query('SELECT * FROM questions');
+        conn.release();
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur lors de la récupération des questions.' });
+    }
+});
+
+app.post('/questions', async (req, res) => {
+    const { question, answer } = req.body;
+    if (!question || !answer) {
+        return res.status(400).json({ error: 'Veuillez fournir une question et une réponse.' });
+    }
+
+    try {
+        const conn = await pool.getConnection();
+        await conn.query('INSERT INTO questions (question, answer) VALUES (?, ?)', [question, answer]);
+        conn.release();
+        res.status(201).json({ message: 'Question ajoutée avec succès.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur lors de l\'ajout de la question.' });
+    }
+});
+
+app.put('/questions/:id', async (req, res) => {
+    const { id } = req.params;
+    const { question, answer } = req.body;
+    if (!question || !answer) {
+        return res.status(400).json({ error: 'Veuillez fournir une question et une réponse.' });
+    }
+
+    try {
+        const conn = await pool.getConnection();
+        await conn.query('UPDATE questions SET question = ?, answer = ? WHERE id = ?', [question, answer, id]);
+        conn.release();
+        res.json({ message: 'Question mise à jour avec succès.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur lors de la mise à jour de la question.' });
+    }
+});
+
+app.delete('/questions/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const conn = await pool.getConnection();
+        await conn.query('DELETE FROM questions WHERE id = ?', [id]);
+        conn.release();
+        res.json({ message: 'Question supprimée avec succès.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erreur lors de la suppression de la question.' });
+    }
+});
+
 // Lancement du serveur
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur https://api-chatbot.maxlft.tech:${PORT}`);
