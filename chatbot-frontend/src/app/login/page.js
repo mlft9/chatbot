@@ -25,8 +25,15 @@ export default function Login() {
         }
     };
 
+    const handleGoToChatbot = () => {
+        router.push('/chatbot');
+    };
+
     return (
         <div style={styles.container}>
+            <button onClick={handleGoToChatbot} style={styles.chatbotButton}>
+    ← Retour au Chatbot
+</button>
             <h1 style={styles.header}>Connexion</h1>
             {error && <p style={styles.error}>{error}</p>}
             <input
@@ -87,5 +94,21 @@ const styles = {
     error: {
         color: '#f44336',
         marginBottom: '10px',
+    },
+    chatbotButton: {
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        padding: '10px 15px',
+        backgroundColor: '#2196F3',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        transition: 'background-color 0.3s ease',
+    },
+    chatbotButtonHover: {
+        backgroundColor: '#1976D2',
     },
 };

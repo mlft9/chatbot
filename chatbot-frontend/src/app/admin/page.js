@@ -109,8 +109,16 @@ export default function Admin() {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem('token'); // Supprime le token
+        router.push('/login'); // Redirige vers la page de connexion
+    };
+
     return (
         <div style={styles.container}>
+            <button onClick={handleLogout} style={styles.logoutButton}>
+            Déconnexion
+        </button>
             <h1 style={styles.header}>Administration des Questions</h1>
 
             {loading && <div style={styles.loader}>Chargement des données...</div>}
@@ -321,5 +329,21 @@ const styles = {
         padding: '8px 12px',
         borderRadius: '4px',
         cursor: 'pointer',
+    },
+    logoutButton: {
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        padding: '10px 20px',
+        backgroundColor: '#f44336',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        transition: 'background-color 0.3s ease',
+    },
+    logoutButtonHover: {
+        backgroundColor: '#d32f2f',
     },
 };
