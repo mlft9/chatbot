@@ -73,7 +73,7 @@ router.post('/chat', async (req, res) => {
 
         const fuse = new Fuse(rows, {
             keys: ['question'],
-            threshold: 0.3,
+            threshold: 0.4,
         });
 
         const result = fuse.search(message);
