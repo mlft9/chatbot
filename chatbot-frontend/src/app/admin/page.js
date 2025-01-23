@@ -8,26 +8,34 @@ export default function Admin() {
     const [questions, setQuestions] = useState([]);
     const [newQuestion, setNewQuestion] = useState({ question: '', answer: '' });
     const [editing, setEditing] = useState(null);
-    const [loading, setLoading] = useState(true); // L'état de chargement est à true au début
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const router = useRouter();
 
-    // Vérifie si l'utilisateur est authentifié
+    // Vérification du token d'authentification
     useEffect(() => {
         const token = localStorage.getItem('token');
+        console.log("Token dans localStorage :", token);
 
         if (!token) {
-            router.push('/login'); // Redirige vers la page de connexion
+            console.log("Redirection vers /login car aucun token trouvé.");
+            router.push('/login');
             return;
         }
 
         const verifyToken = async () => {
             try {
-                await api.post('/verify-token', { token });
-                setLoading(false); // Si tout va bien, on change l'état de chargement
-            } catch {
-                localStorage.removeItem('token');
-                router.push('/login'); // Redirige si le token est invalide
+                const res = await api.post('/verify-token', { token });
+                console.log("Résultat de la vérification du token :", res.data);
+                if (res.data.valid) {
+                    setLoading(false);
+                } else {
+                    console.log("Token invalide, redirection.");
+                    router.push('/login');
+                }
+            } catch (error) {
+                console.log("Erreur lors de la vérification du token :", error);
+                router.push('/login');
             }
         };
 
@@ -36,26 +44,24 @@ export default function Admin() {
 
     // Récupérer les questions
     useEffect(() => {
-        if (loading) return; // Si la page est en cours de chargement, ne pas exécuter fetchQuestions
-        fetchQuestions();
-    }, [loading]);
+        const fetchQuestions = async () => {
+            setError('');
+            try {
+                const token = localStorage.getItem('token');
+                const res = await api.get('/questions', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setQuestions(res.data);
+            } catch (err) {
+                console.error('Erreur lors du chargement des questions:', err);
+                setError("Erreur lors du chargement des questions. Veuillez réessayer.");
+            }
+        };
 
-    const fetchQuestions = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const token = localStorage.getItem('token'); // Ajout du token pour sécuriser la requête
-            const res = await api.get('/questions', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setQuestions(res.data);
-        } catch (err) {
-            console.error('Erreur lors du chargement des questions:', err);
-            setError("Erreur lors du chargement des questions. Veuillez réessayer.");
-        } finally {
-            setLoading(false);
+        if (!loading) {
+            fetchQuestions();
         }
-    };
+    }, [loading]);
 
     const handleAddQuestion = async () => {
         if (!newQuestion.question.trim() || !newQuestion.answer.trim()) {
@@ -68,8 +74,8 @@ export default function Admin() {
             await api.post('/questions', newQuestion, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            fetchQuestions();
             setNewQuestion({ question: '', answer: '' });
+            setLoading(true); // Recharge les questions
         } catch (err) {
             console.error('Erreur lors de l\'ajout de la question:', err);
             setError("Impossible d'ajouter la question. Veuillez réessayer.");
@@ -87,8 +93,8 @@ export default function Admin() {
             await api.put(`/questions/${id}`, editing, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            fetchQuestions();
             setEditing(null);
+            setLoading(true); // Recharge les questions
         } catch (err) {
             console.error('Erreur lors de la mise à jour:', err);
             setError("Impossible de mettre à jour la question. Veuillez réessayer.");
@@ -104,7 +110,7 @@ export default function Admin() {
             await api.delete(`/questions/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            fetchQuestions();
+            setLoading(true); // Recharge les questions
         } catch (err) {
             console.error('Erreur lors de la suppression:', err);
             setError("Impossible de supprimer la question. Veuillez réessayer.");
@@ -116,9 +122,11 @@ export default function Admin() {
         router.push('/login'); // Redirige vers la page de connexion
     };
 
-    return loading ? (
-        <div style={styles.loader}>Vérification de l'authentification...</div>
-    ) : (
+    if (loading) {
+        return <div style={styles.loader}>Chargement en cours...</div>;
+    }
+
+    return (
         <div style={styles.container}>
             <button onClick={handleLogout} style={styles.logoutButton}>
                 Déconnexion
@@ -150,7 +158,7 @@ export default function Admin() {
 
             <div style={styles.list}>
                 <h2 style={styles.subHeader}>Liste des Questions</h2>
-                {questions.length === 0 && !loading && <p>Aucune question disponible.</p>}
+                {questions.length === 0 && <p>Aucune question disponible.</p>}
                 <ul style={styles.listContainer}>
                     {questions.map((q) => (
                         <li key={q.id} style={styles.listItem}>

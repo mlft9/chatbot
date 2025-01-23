@@ -180,7 +180,6 @@ router.post('/login', async (req, res) => {
         username === process.env.ADMIN_USERNAME &&
         password === process.env.ADMIN_PASSWORD
     ) {
-        // Génère un token JWT
         const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
         return res.json({ token });
     }
@@ -190,15 +189,19 @@ router.post('/login', async (req, res) => {
 
 router.post('/verify-token', (req, res) => {
     const { token } = req.body;
+    console.log("Token reçu pour vérification :", token);
 
     if (!token) {
+        console.log("Aucun token fourni");
         return res.status(400).json({ error: 'Token requis.' });
     }
 
     try {
-        jwt.verify(token, process.env.JWT_SECRET);
-        res.json({ valid: true });
-    } catch {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("Token valide, utilisateur :", decoded.username);
+        res.json({ valid: true, username: decoded.username });
+    } catch (err) {
+        console.log("Erreur lors de la vérification du token :", err.message);
         res.status(401).json({ error: 'Token invalide.' });
     }
 });
