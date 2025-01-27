@@ -4,6 +4,7 @@ const cors = require('cors');
 const mariadb = require('mariadb');
 const Fuse = require('fuse.js');
 const jwt = require('jsonwebtoken');
+const axios = require('axios'); // Ajout du module Axios
 
 const app = express();
 const router = express.Router(); // Définition correcte du router
@@ -22,43 +23,42 @@ const pool = mariadb.createPool({
     connectionLimit: 5,
 });
 
-async function askChatGPT(question) {
-    const apiKey = process.env.OPENAI_API_KEY; // Assurez-vous que la clé API est définie dans .env
-    const apiUrl = "https://api.openai.com/v1/chat/completions";
+// async function askChatGPT(question) {
+//     const apiKey = process.env.OPENAI_API_KEY; // Assurez-vous que la clé API est définie dans .env
+//     const apiUrl = "https://api.openai.com/v1/chat/completions";
 
-    const requestBody = {
-        model: "gpt-3.5-turbo",
-        messages: [
-            { role: "system", content: "You are a helpful assistant." },
-            { role: "user", content: question }
-        ],
-        max_tokens: 100,
-        temperature: 0.7,
-    };
+//     const requestBody = {
+//         model: "gpt-3.5-turbo",
+//         messages: [
+//             { role: "system", content: "You are a helpful assistant." },
+//             { role: "user", content: question }
+//         ],
+//         max_tokens: 100,
+//         temperature: 0.7,
+//     };
 
-    try {
-        const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(requestBody)
-        });
+//     try {
+//         const response = await fetch(apiUrl, {
+//             method: "POST",
+//             headers: {
+//                 "Content-Type": "application/json",
+//                 "Authorization": `Bearer ${apiKey}`
+//             },
+//             body: JSON.stringify(requestBody)
+//         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+//         if (!response.ok) {
+//             throw new Error(`HTTP error! status: ${response.status}`);
+//         }
 
-        const data = await response.json();
-        return data.choices[0].message.content;
-    } catch (error) {
-        console.error("Erreur avec l'API OpenAI:", error);
-        return "Désolé, je n'ai pas pu obtenir une réponse pour le moment.";
-    }
-}
+//         const data = await response.json();
+//         return data.choices[0].message.content;
+//     } catch (error) {
+//         console.error("Erreur avec l'API OpenAI:", error);
+//         return "Désolé, je n'ai pas pu obtenir une réponse pour le moment.";
+//     }
+// }
 
-// Route pour répondre aux questions
 router.post('/chat', async (req, res) => {
     const { message } = req.body;
 
@@ -81,15 +81,24 @@ router.post('/chat', async (req, res) => {
         if (result.length > 0) {
             return res.json({ response: result[0].item.answer });
         } else {
-            // Si aucune réponse trouvée, interroge l'API OpenAI
-            const aiResponse = await askChatGPT(message);
-            return res.json({ response: aiResponse });
+            // Si aucune réponse trouvée, envoyer la question à n8n
+            try {
+                await axios.post('https://n8n.maxlft.tech/webhook-test/telegram', {
+                    question: message,
+                });
+                return res.json({ response: "Je n'ai aucune réponse à donner pour le moment, mais j'ai envoyé votre question." });
+            } catch (err) {
+                console.error("Erreur lors de l'envoi à n8n :", err.message);
+                return res.status(500).json({ response: "Erreur lors de l'envoi de la question à un autre service." });
+            }
         }
     } catch (err) {
         console.error(err);
         res.status(500).json({ response: 'Erreur interne du serveur.' });
     }
 });
+
+
 
 // Route pour récupérer toutes les questions
 router.get('/questions', async (req, res) => {
