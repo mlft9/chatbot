@@ -83,10 +83,10 @@ router.post('/chat', async (req, res) => {
         } else {
             // Si aucune réponse trouvée, envoyer la question à n8n
             try {
-                await axios.post('https://n8n.maxlft.tech/webhook-test/telegram', {
+                await axios.post('https://n8n.maxlft.tech/webhook/telegram', {
                     question: message,
                 });
-                return res.json({ response: "Je n'ai aucune réponse à donner pour le moment, mais j'ai envoyé votre question." });
+                return res.json({ response: "Je n'ai pas de réponse immédiate à vous fournir, mais votre question a été transmise pour une analyse plus approfondie." });
             } catch (err) {
                 console.error("Erreur lors de l'envoi à n8n :", err.message);
                 return res.status(500).json({ response: "Erreur lors de l'envoi de la question à un autre service." });
