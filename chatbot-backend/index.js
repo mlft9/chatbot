@@ -16,11 +16,12 @@ app.use(express.json());
 
 // Pool de connexion à MariaDB
 const pool = mariadb.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    connectionLimit: 5,
+    host: '172.18.0.3', // Utilisez 'localhost' si vous accédez au conteneur Docker localement
+    port: 3306, // Port par défaut de MariaDB
+    user: 'root', // Remplacez par votre nom d'utilisateur MariaDB
+    password: 'U^xKrk601hmYSLsE0F#MJz#Y^j', // Remplacez par votre mot de passe MariaDB
+    database: 'chatbot', // Remplacez par le nom de votre base de données
+    connectionLimit: 5 // Nombre maximum de connexions dans le pool
 });
 
 // async function askChatGPT(question) {
