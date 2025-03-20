@@ -22,7 +22,7 @@
 /chatbot-frontend/yarn-error.log*
 /chatbot-frontend/.pnpm-debug.log*
 
-/chatbot-frontend/.env*
+/chatbot-frontend/.env
 
 /chatbot-frontend/.vercel
 
@@ -32,4 +32,4 @@
 
 
 /chatbot-backend/node_modules
-/chatbot-backend/.env*
+/chatbot-backend/.env
