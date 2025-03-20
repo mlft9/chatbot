@@ -1,6 +1,6 @@
-### Chatbot pour projet sportif
+# Chatbot pour projet sportif
 
-# Configuration
+## Configuration
 
 - Copier les ".env.example" et coller les dans les mêmes dossier où vous les avez copiés.
 - Renommer les en ".env"
