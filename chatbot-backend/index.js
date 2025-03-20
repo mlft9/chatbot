@@ -8,7 +8,7 @@ const axios = require('axios'); // Ajout du module Axios
 
 const app = express();
 const router = express.Router(); // Définition correcte du router
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT;
 
 // Middleware
 app.use(cors());
@@ -16,11 +16,11 @@ app.use(express.json());
 
 // Pool de connexion à MariaDB
 const pool = mariadb.createPool({
-    host: '172.18.0.3', // Utilisez 'localhost' si vous accédez au conteneur Docker localement
-    port: 3306, // Port par défaut de MariaDB
-    user: 'root', // Remplacez par votre nom d'utilisateur MariaDB
-    password: 'U^xKrk601hmYSLsE0F#MJz#Y^j', // Remplacez par votre mot de passe MariaDB
-    database: 'chatbot', // Remplacez par le nom de votre base de données
+    host: process.env.DB_HOST, // Utilisez 'localhost' si vous accédez au conteneur Docker localement
+    port: process.env.DB_PORT, // Port par défaut de MariaDB
+    user: process.env.DB_USER, // Remplacez par votre nom d'utilisateur MariaDB
+    password: process.env.DB_PASSWORD, // Remplacez par votre mot de passe MariaDB
+    database: process.env.DB_NAME, // Remplacez par le nom de votre base de données
     connectionLimit: 5 // Nombre maximum de connexions dans le pool
 });
 
@@ -84,7 +84,7 @@ router.post('/chat', async (req, res) => {
         } else {
             // Si aucune réponse trouvée, envoyer la question à n8n
             try {
-                await axios.post('https://n8n.maxlft.tech/webhook/telegram', {
+                await axios.post(process.env.N8N_URL, {
                     question: message,
                 });
                 return res.json({ response: "Je n'ai pas de réponse immédiate à vous fournir, mais votre question a été transmise pour une analyse plus approfondie." });
